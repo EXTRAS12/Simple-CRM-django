@@ -23,6 +23,7 @@
     <p class="mb-6">{{ lead.modified_at|date:"M-d-Y H:i" }}</p>
 
     <hr class="my-5">
+    <a href="{% url 'leads_convert' lead.id %}" class="py-2 px-4 rounded-xl bg-teal-500 text-white">Сделать клиентом</a>
     <a href="{% url 'leads_edit' lead.id %}" class="py-2 px-4 rounded-xl bg-teal-500 text-white">Изменить</a>
     <a href="{% url 'leads_delete' lead.id %}" class="py-2 px-4 rounded-xl bg-red-500 text-white">Удалить</a>
 

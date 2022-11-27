@@ -13,6 +13,7 @@ urlpatterns = [
     path('log-out/', views.LogoutView.as_view(), name='logout'),
     path('dashboard/', include('dashboard.urls')),
     path('dashboard/leads/', include('lead.urls')),
+    path('dashboard/clients/', include('client.urls')),
     path('admin/', admin.site.urls),
 
 ]
