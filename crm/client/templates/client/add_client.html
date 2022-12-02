@@ -6,13 +6,18 @@
 <div class="py-6 px-6">
     <h1 class="text-xl">Добавить</h1>
 
-    <form method="post" action=".">
-        {% csrf_token %}
+    {% if team.plan.max_clients > team.clients.all|length %}
+        <form method="post" action=".">
+            {% csrf_token %}
 
-        {{ form.as_p }}
+            {{ form.as_p }}
 
-        <button class="py-4 px-8 bg-violet-500 text-white rounded-xl">Добавить</button>
-    </form>
+            <button class="py-4 px-8 bg-violet-500 text-white rounded-xl">Добавить</button>
+        </form>
+    {% else %}
+        <div class="px-6 py-4 bg-red-400 rounded-xl text-white">Твоя команда достигла максимальное число клиентов. Менеджер может обновить ваш план!</div>
+
+    {% endif %}
 </div>
 
 
