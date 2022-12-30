@@ -1,86 +1,145 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect, get_object_or_404
-from .forms import AddLeadForm
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.urls import reverse_lazy
+from django.shortcuts import redirect, get_object_or_404
+from django.views.generic import ListView, DetailView, DeleteView, UpdateView, CreateView, View
+from .forms import AddLeadForm, AddCommentForm, AddFileForm
 from .models import Lead
 
-from client.models import Client
+from client.models import Client, Comment as ClientComment
 from team.models import Team
 
 
-@login_required
-def leads_list(request):
-    leads = Lead.objects.filter(created_by=request.user, converted_to_client=False)
+class LeadListView(LoginRequiredMixin, ListView):
+    model = Lead
+    context_object_name = 'leads'
 
-    return render(request, 'lead/leads_list.html', {
-        'leads': leads
-    })
-
-
-@login_required
-def leads_detail(request, pk):
-    lead = get_object_or_404(Lead, created_by=request.user, pk=pk)
-
-    return render(request, 'lead/leads_detail.html', {
-        'lead': lead
-    })
-
-@login_required
-def leads_delete(request, pk):
-    lead = get_object_or_404(Lead, created_by=request.user, pk=pk)
-    lead.delete()
-
-    messages.success(request, 'Успешно удалено.')
-
-    return redirect('leads_list')
+    def get_queryset(self):
+        queryset = super(LeadListView, self).get_queryset()
+        return queryset.filter(created_by=self.request.user,
+                               converted_to_client=False)
 
 
-@login_required
-def leads_edit(request, pk):
-    lead = get_object_or_404(Lead, created_by=request.user, pk=pk)
+class LeadDetailView(LoginRequiredMixin, DetailView):
+    model = Lead
+    queryset = Lead.objects.all()
 
-    if request.method == 'POST':
-        form = AddLeadForm(request.POST, instance=lead)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'] = AddCommentForm()
+        context['fileform'] = AddFileForm()
+
+        return context
+
+    def get_queryset(self):
+        return self.queryset.filter(created_by=self.request.user, pk=self.kwargs.get('pk'))
+
+
+class LeadDeleteView(LoginRequiredMixin, DeleteView):
+    model = Lead
+    success_url = reverse_lazy('leads:list')
+
+    def get_queryset(self):
+        queryset = super(LeadDeleteView, self).get_queryset()
+        return queryset.filter(created_by=self.request.user, pk=self.kwargs.get('pk'))
+
+    def get(self, request, *args, **kwargs):
+        return self.post(request, *args, **kwargs)
+
+
+class LeadUpdateView(LoginRequiredMixin, UpdateView):
+    model = Lead
+    form_class = AddLeadForm
+    success_url = reverse_lazy('leads:list')
+
+    def get_queryset(self):
+        queryset = super(LeadUpdateView, self).get_queryset()
+        return queryset.filter(created_by=self.request.user, pk=self.kwargs.get('pk'))
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Изменить'
+        return context
+
+
+class LeadCreateView(LoginRequiredMixin, CreateView):
+    model = Lead
+    form_class = AddLeadForm
+    success_url = reverse_lazy('leads:list')
+
+    def get_queryset(self):
+        queryset = super(LeadUpdateView, self).get_queryset()
+        return queryset.filter(created_by=self.request.user, pk=self.kwargs.get('pk'))
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        team = Team.objects.filter(created_by=self.request.user)[0]
+        context['team'] = team
+        context['title'] = 'Добавить'
+
+        return context
+
+    def form_valid(self, form):
+        team = Team.objects.filter(created_by=self.request.user)[0]
+
+        self.object = form.save(commit=False)
+        self.object.created_by = self.request.user
+        self.object.team = team
+        self.object.save()
+
+        return redirect(self.success_url)
+
+
+class AddFileView(View):
+    def post(self, request, *args, **kwargs):
+        pk = kwargs.get('pk')
+
+        form = AddFileForm(request.POST, request.FILES)
 
         if form.is_valid():
-            lead = form.save()
+            team = Team.objects.filter(created_by=self.request.user)[0]
+            file = form.save(commit=False)
+            file.team = team
+            file.lead_id = pk
+            file.created_by = request.user
+            file.save()
 
-            messages.success(request, 'Успешно изменён.')
-            return redirect('leads_list')
-
-    else:
-        form = AddLeadForm(instance=lead)
-
-        return render(request, 'lead/leads_edit.html', {
-        'form': form
-    })
+        return redirect('leads:detail', pk=pk)
 
 
-@login_required
-def add_lead(request):
-    team = Team.objects.filter(created_by=request.user)[0]
+class AddCommentView(View):
+    def post(self, request, *args, **kwargs):
+        pk = kwargs.get('pk')
 
-    if request.method == 'POST':
-        form = AddLeadForm(request.POST)
+        form = AddCommentForm(request.POST)
 
         if form.is_valid():
-            team = Team.objects.filter(created_by=request.user)[0]
+            team = Team.objects.filter(created_by=self.request.user)[0]
+            comment = form.save(commit=False)
+            comment.team = team
+            comment.created_by = request.user
+            comment.lead_id = pk
+            comment.save()
 
-            lead = form.save(commit=False)
-            lead.created_by = request.user
-            lead.team = team
-            lead.save()
+        return redirect('leads:detail', pk=pk)
 
-            messages.success(request, 'Успешно создан.')
 
-            return redirect('leads_list')
-    else:
-        form = AddLeadForm()
+class ConvertToClientView(View):
+    def get(self, request, *args, **kwargs):
+        pk = self.kwargs.get('pk')
+        lead = get_object_or_404(Lead, created_by=request.user, pk=pk)
+        team = Team.objects.filter(created_by=request.user)[0]
 
-    return render(request, 'lead/add_lead.html', {
-        'form': form,
-        'team': team
-    })
+        client = Client.objects.create(name=lead.name, email=lead.email,
+                                       description=lead.description,
+                                       created_by=request.user, team=team)
+        lead.converted_to_client = True
+        lead.save()
+
+        messages.success(request, 'Стал клиентом')
+
+        return redirect('leads:list')
 
 
 @login_required
@@ -94,6 +153,18 @@ def convert_to_client(request, pk):
     lead.converted_to_client = True
     lead.save()
 
+    # Конвертируем лид комменты в клиент комменты
+
+    comments = lead.comments.all()
+
+    for comment in comments:
+        ClientComment.objects.create(
+            client = client,
+            content = comment.content,
+            created_by = comment.created_by,
+            team = team
+        )
+
     messages.success(request, 'Стал клиентом')
 
-    return redirect('leads_list')
+    return redirect('leads:list')

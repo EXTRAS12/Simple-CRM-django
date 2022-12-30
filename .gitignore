@@ -8,3 +8,9 @@ venv
 django_cache
 __pycache__/
 */__pycache__/
+*.log
+*.pot
+*.pyc
+local_settings.py
+static
+build

@@ -2,11 +2,16 @@ from django.urls import path
 
 from . import views
 
+app_name = 'clients'
+
 
 urlpatterns = [
-    path('', views.clients_list, name='clients_list'),
-    path('<int:pk>', views.clients_detail, name='clients_detail'),
-    path('add-client/', views.add_client, name='add_client'),
-    path('<int:pk>/delete/', views.clients_delete, name='clients_delete'),
-    path('<int:pk>/edit/', views.clients_edit, name='clients_edit'),
+    path('', views.clients_list, name='list'),
+    path('<int:pk>', views.clients_detail, name='detail'),
+    path('add-client/', views.add_client, name='add'),
+    path('<int:pk>/delete/', views.clients_delete, name='delete'),
+    path('<int:pk>/edit/', views.clients_edit, name='edit'),
+    path('<int:pk>/add-file/', views.clients_add_file, name='add_file'),
+    path('<int:pk>/add_comment/', views.clients_detail, name='add_comment'),
+    path('export/', views.clients_export, name='export'),
 ]
