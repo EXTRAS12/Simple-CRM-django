@@ -1,14 +1,16 @@
+from client.models import Client
+from client.models import Comment as ClientComment
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
-from django.shortcuts import redirect, get_object_or_404
-from django.views.generic import ListView, DetailView, DeleteView, UpdateView, CreateView, View
-from .forms import AddLeadForm, AddCommentForm, AddFileForm
-from .models import Lead
-
-from client.models import Client, Comment as ClientComment
+from django.views.generic import (CreateView, DeleteView, DetailView, ListView,
+                                  UpdateView, View)
 from team.models import Team
+
+from .forms import AddCommentForm, AddFileForm, AddLeadForm
+from .models import Lead
 
 
 class LeadListView(LoginRequiredMixin, ListView):
@@ -108,7 +110,7 @@ class AddFileView(View):
         return redirect('leads:detail', pk=pk)
 
 
-class AddCommentView(View):
+class AddCommentView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         pk = kwargs.get('pk')
 
@@ -125,7 +127,7 @@ class AddCommentView(View):
         return redirect('leads:detail', pk=pk)
 
 
-class ConvertToClientView(View):
+class ConvertToClientView(LoginRequiredMixin ,View):
     def get(self, request, *args, **kwargs):
         pk = self.kwargs.get('pk')
         lead = get_object_or_404(Lead, created_by=request.user, pk=pk)

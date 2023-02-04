@@ -3,13 +3,15 @@
 {% block title %}Регистрация{% endblock %}
 
 {% block content %}
-<h1 class="text-xl">Регистрация</h1>
+<div class="py-6 px-6">
+    <h1 class="text-xl mb-6">Регистрация</h1>
 
-<form method="post" action=".">
-    {% csrf_token %}
+    <form method="post" action=".">
+        {% csrf_token %}
 
-    {{ form.as_p }}
+        {{ form.as_p }}
 
-    <button class="py-4 px-8 bg-violet-500 text-white rounded-xl">Отправить</button>
-</form>
+        <button class="py-4 px-8 bg-violet-500 text-white rounded-xl">Отправить</button>
+    </form>
+</div>
 {% endblock %}
