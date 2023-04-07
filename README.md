@@ -1,3 +1,3 @@
 # Simple-CRM-django
 
-CRM система пет проект
+CRM система
